@@ -1,30 +1,33 @@
 const mongoose = require('mongoose');
 
 const TransactionSchema = new mongoose.Schema({
-  senderId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  receiverId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  type: {
+    type: String,
+    enum: ['credit', 'debit'], // Money coming in (credit) or going out (debit)
     required: true
   },
   amount: {
     type: Number,
     required: true
   },
-  type: {
+  description: {
     type: String,
-    enum: ['DEPOSIT', 'TRANSFER'], // We only allow these two types
     required: true
   },
-  status: {
-    type: String,
-    enum: ['SUCCESS', 'FAILED', 'PENDING'],
-    default: 'PENDING'
+  reference: {
+    type: String, // Unique ID for this specific transfer
+    required: true,
+    unique: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
-}, { timestamps: true });
+});
 
 module.exports = mongoose.model('Transaction', TransactionSchema);
