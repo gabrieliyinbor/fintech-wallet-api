@@ -1,16 +1,16 @@
+const mongoose = require('mongoose');
 const Wallet = require('../models/Wallet');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
-const mongoose = require('mongoose');
 
 // TRANSFER MONEY
 exports.transferMoney = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction(); // Start a "Safety Box" (Atomic Transaction)
+  session.startTransaction();
 
   try {
     const { amount, receiverEmail, description } = req.body;
-    const senderId = req.user.id; // Comes from the logged-in token
+    const senderId = req.user.id;
 
     // 1. Find Sender's Wallet
     const senderWallet = await Wallet.findOne({ userId: senderId }).session(session);
@@ -29,25 +29,22 @@ exports.transferMoney = async (req, res) => {
 
     const receiverWallet = await Wallet.findOne({ userId: receiverUser._id }).session(session);
 
-    // 3. MOVING THE MONEY (The Atomic Swap)
-    
-    // Deduct from Sender
+    // 3. MOVING THE MONEY
     senderWallet.balance -= amount;
     await senderWallet.save({ session });
 
-    // Add to Receiver
     receiverWallet.balance += amount;
     await receiverWallet.save({ session });
 
-    // 4. Create Receipts (Two transactions: Debit for Sender, Credit for Receiver)
-    const reference = 'TRX-' + Date.now();
+    // 4. Create Receipts (Uniqueness Fix: Adding -DB and -CR)
+    const baseRef = 'TRX-' + Date.now();
 
     await Transaction.create([{
       userId: senderId,
       type: 'debit',
       amount: amount,
       description: `Transfer to ${receiverEmail}: ${description}`,
-      reference: reference
+      reference: baseRef + '-DB' // <--- Added -DB to make it unique
     }], { session });
 
     await Transaction.create([{
@@ -55,17 +52,17 @@ exports.transferMoney = async (req, res) => {
       type: 'credit',
       amount: amount,
       description: `Received from ${req.user.email}: ${description}`,
-      reference: reference
+      reference: baseRef + '-CR' // <--- Added -CR to make it unique
     }], { session });
 
-    // 5. Commit (Save everything)
+    // 5. Commit
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({ message: 'Transfer successful', reference });
+    res.status(200).json({ message: 'Transfer successful', reference: baseRef });
 
   } catch (error) {
-    await session.abortTransaction(); // If ANYTHING fails, undo everything
+    await session.abortTransaction();
     session.endSession();
     res.status(500).json({ message: 'Transfer failed', error: error.message });
   }
