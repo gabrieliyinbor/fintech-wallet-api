@@ -47,6 +47,7 @@ A secure backend API for peer-to-peer (P2P) financial transactions. Built with *
 | **POST** | `/api/auth/register` | Register a new user & auto-create wallet |
 | **POST** | `/api/auth/login` | Login and receive Access Token |
 | **POST** | `/api/wallet/transfer` | Transfer money (Requires Token) |
+| **GET** | `/api/wallet` | Get current user balance |
 
 ---
 *Developed by Gabriel Iyinbor*
