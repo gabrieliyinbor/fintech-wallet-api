@@ -67,3 +67,18 @@ exports.transferMoney = async (req, res) => {
     res.status(500).json({ message: 'Transfer failed', error: error.message });
   }
 };
+
+// GET WALLET BALANCE
+exports.getWallet = async (req, res) => {
+  try {
+    const wallet = await Wallet.findOne({ userId: req.user.id });
+    
+    if (!wallet) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+
+    res.status(200).json(wallet);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
